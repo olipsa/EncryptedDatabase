@@ -5,7 +5,7 @@ class Add:
 
     def start(self):
         while True:
-            path = input("Provide the path of the file to be added or none to stop command: ")
+            path = input("Provide the path of the file to be added or 'none' to stop command: ")
             if path.lower() == "none":
                 break
             try:
