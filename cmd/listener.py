@@ -1,18 +1,22 @@
+"""
+Methods for checking whether a command is implemented or not.
+"""
 from cmd.commands import Add, Read, Delete
 from database.connection import create_table, close_connection
 
 
 def start():
-    encrypted_folder = "./encrypted_files/"
+    """Prompts the user to enter a new command in an infinite loop, until exit keyword is introduced."""
     create_table()
+
     while True:
         input_command = input("Input the command to be used: ").lower()
         if input_command == "add":
-            command = Add(encrypted_folder)
+            command = Add()
         elif input_command == "read":
-            command = Read(encrypted_folder)
+            command = Read()
         elif input_command == "delete":
-            command = Delete(encrypted_folder)
+            command = Delete()
         elif input_command == "exit":
             break
         else:
