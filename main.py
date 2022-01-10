@@ -1,9 +1,9 @@
 from cmd import listener
-from database.connection import connect
+from db.connection import connect
 
 if __name__ == '__main__':
 
-    connect('files.db')
+    connect('db/files.db')
     listener.start()
 
 
