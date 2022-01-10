@@ -1,12 +1,14 @@
-"""
-Methods for checking whether a command is implemented or not.
-"""
+"""Methods for checking whether a command is implemented or not."""
 from cmd.commands import Add, Read, Delete
-from database.connection import create_table, close_connection
+from db.connection import create_table, close_connection
 
 
 def start():
-    """Prompts the user to enter a new command in an infinite loop, until exit keyword is introduced."""
+    """Prepare database for command handle: creates the needed tables.
+    Prompts the user to enter a new command in an infinite loop, until exit keyword is introduced.
+    For each implemented command, it's specific class will be instantiated and treated.
+    """
+
     create_table()
 
     while True:
@@ -26,5 +28,3 @@ def start():
         command.treat()
 
     close_connection()
-
-
