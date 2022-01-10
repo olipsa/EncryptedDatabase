@@ -3,7 +3,7 @@ from database.connection import connect
 
 if __name__ == '__main__':
 
-    connect('./files.db')
+    connect('files.db')
     listener.start()
 
 

@@ -1,6 +1,6 @@
 """Actual implementation of supported commands. """
 import os.path
-from database.connection import find_file
+from database.connection import find_file, delete_file
 from security.encryption import Algorithms
 
 alg_class = Algorithms()
@@ -25,8 +25,7 @@ class Add:
                 print("Incorrect path.")
             elif os.path.isdir(path):
                 print("Unable to encrypt entire directory.")
-            elif os.path.exists(alg_class.ENCRYPTED_FOLDER+os.path.basename(path)+"_enc")\
-                    or find_file(os.path.basename(path)):
+            elif os.path.exists(alg_class.ENCRYPTED_FOLDER+os.path.basename(path)+"_enc"):
                 print("File with same name already encrypted.")
             else:
                 self.file_path = path
@@ -55,7 +54,6 @@ class Add:
         else:
             print("Encrypting file...")
             alg_class.encrypt_file(self.file_path, self.input_alg)
-
 
 
 class Read:
@@ -87,20 +85,16 @@ class Delete:
         self.file_name = None
 
     def start(self):
-        while True:
-            file = input("Provide the name of the file to be deleted or 'none' to stop this command: ")
-            if file == "none":
-                break
-            try:
-                f = open(alg_class.ENCRYPTED_FOLDER + file, "rb")
-            except FileNotFoundError:
-                print("File not found.")
-            else:
-                self.file_name = file
-                break
+        file = input("Provide the name of the file to be deleted or 'none' to stop this command: ")
+        if file.lower() == "none":
+            return
+        self.file_name = file
 
     def treat(self):
         if self.file_name is None:
             print("No action will be taken.")
         else:
-            print("Deleting file from db...")
+            if os.path.exists(alg_class.ENCRYPTED_FOLDER+self.file_name+"_enc"):
+                os.remove(alg_class.ENCRYPTED_FOLDER+self.file_name+"_enc")
+                print("File removed locally.")
+            delete_file(self.file_name)
