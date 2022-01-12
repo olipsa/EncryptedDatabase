@@ -1,8 +1,29 @@
+import binascii
 import os.path
 from Cryptodome.PublicKey import RSA
 from Cryptodome.Cipher import PKCS1_OAEP
+from ecies.utils import generate_eth_key
+from ecies import encrypt, decrypt
 
-from db.connection import insert_file, get_file_keys
+from db.connection import insert_file, get_file_keys, get_file_enc_algorithm
+
+
+def ask_for_path():
+    """Prompt user to input the path where the decrypted file should be saved.
+    Internal loop: if provided path is not correct, user is informed,
+    and he is asked to enter another path.
+    """
+
+    while True:
+        path = input("Choose where to save file: ")
+        if not path.endswith("\\"):
+            path += "\\"
+        if not os.path.isdir(path):
+            print("Path provided is not a directory.")
+            print(path)
+            continue
+
+        return path
 
 
 class Algorithms:
@@ -10,16 +31,32 @@ class Algorithms:
     Each one has methods to encrypt and decrypt a file.
     """
 
-    ENCRYPTION_ALG = ['RSA']
+    ENCRYPTION_ALG = ['RSA', 'ECIES']
     ENCRYPTED_FOLDER = "./encrypted_files/"
 
     def encrypt_file(self, file_path, algorithm):
-        """Call the function that encrypts the file with the provided algorithm"""
+        """Call the function that encrypts the file with the provided algorithm."""
 
         if self.ENCRYPTION_ALG[algorithm] == 'RSA':
             self.encrypt_file_rsa(file_path)
+        elif self.ENCRYPTION_ALG[algorithm] == 'ECIES':
+            self.encrypt_file_ecies(file_path)
         else:
             print("Algorithm not implemented.")
+
+    def decrypt_file(self, file_name):
+        """Get the encryption algorithm used for encryption from database.
+        Call the function that decrypts file with the method used for encryption.
+        """
+
+        algorithm = get_file_enc_algorithm(file_name)
+        if algorithm == 'RSA':
+            self.decrypt_file_rsa(file_name)
+        elif algorithm == 'ECIES':
+            self.decrypt_file_ecies(file_name)
+        else:
+            print("Unable to decrypt file. Possible reasons: file was either deleted from db, "
+                  "or algorithm used for encryption is not implemented.")
 
     def encrypt_file_rsa(self, file_path):
         """Encrypt file provided as argument using RSA."""
@@ -47,7 +84,7 @@ class Algorithms:
         with open(self.ENCRYPTED_FOLDER + file_name+"_enc", "wb") as enc_file:
             enc_file.write(ciphertext)
 
-        print("File encrypted.")
+        print("File encrypted with RSA.")
 
     def decrypt_file_rsa(self, file_name):
         """Decrypt file provided as argument using RSA."""
@@ -69,9 +106,51 @@ class Algorithms:
             res.append(decryptor.decrypt(enc_content[i:i+max_length]))
         plaintext = b''.join(res)
 
-        path = input("Choose where to save file: ")
+        path = ask_for_path()
 
         with open(path + file_name, "wb") as file:
             file.write(plaintext)
         os.startfile(path + file_name, 'open')
 
+    def encrypt_file_ecies(self, file_path):
+        """Encrypt file provided as argument using ECIES(Elliptic Curve Integrated Encryption Scheme)."""
+
+        file_name = os.path.basename(file_path)
+        private_key = generate_eth_key()
+        private_key_hex = private_key.to_hex()
+        public_key_hex = private_key.public_key.to_hex()
+
+        if not insert_file(file_name, "ECIES", public_key_hex, private_key_hex):
+            print("Unable to encrypt file.")
+            return
+
+        with open(file_path, "rb") as file:
+            plaintext = file.read()
+
+        ciphertext = encrypt(public_key_hex, plaintext)
+        print("Encrypted:", binascii.hexlify(ciphertext))
+
+        with open(self.ENCRYPTED_FOLDER + file_name+"_enc", "wb") as enc_file:
+            enc_file.write(ciphertext)
+
+        print("File encrypted with Elliptic Curve Integrated Encryption Scheme.")
+
+    def decrypt_file_ecies(self, file_name):
+        """Decrypt file provided as argument using ECIES."""
+
+        keys = get_file_keys(file_name)
+        if keys is None:
+            print("File not found in db.")
+            return
+        public_key_hex, private_key_hex = keys
+
+        with open(self.ENCRYPTED_FOLDER + file_name + "_enc", "rb") as file:
+            enc_content = file.read()
+
+        dec_plaintext = decrypt(private_key_hex, enc_content)
+
+        path = ask_for_path()
+
+        with open(path + file_name, "wb") as file:
+            file.write(dec_plaintext)
+        os.startfile(path + file_name, 'open')
