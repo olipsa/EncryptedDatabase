@@ -55,6 +55,19 @@ def insert_file(file_name, algorithm, public_key, private_key):
         cursor.close()
 
 
+def delete_file(file_name):
+    """Delete specific line with metadata of file provided as argument."""
+    global con
+    cursor = con.cursor()
+    result = cursor.execute(f"DELETE FROM enc_files WHERE file_name='{file_name}'")
+    if result.rowcount > 0:
+        print("File removed from db.")
+        con.commit()
+    else:
+        print("File not stored in db.")
+    cursor.close()
+
+
 def get_file_keys(file_name):
     """Return a tuple (public_key, private_key) or None if the file is not found."""
     global con
@@ -68,15 +81,16 @@ def get_file_keys(file_name):
     return None
 
 
-def delete_file(file_name):
-    """Delete specific line with metadata of file provided as argument."""
+def get_file_enc_algorithm(file_name):
+    """Return a string containing the name of the algorithm used for encryption"""
+
     global con
     cursor = con.cursor()
-    result = cursor.execute(f"DELETE FROM enc_files WHERE file_name='{file_name}'")
-    if result.rowcount > 0:
-        print("File removed from db.")
-        con.commit()
-    else:
-        print("File not stored in db.")
+    result = cursor.execute(f"SELECT enc_algorithm FROM enc_files WHERE file_name='{file_name}'")
+    algorithm = result.fetchone()
+    if algorithm is not None:
+        cursor.close()
+        return algorithm[0]
     cursor.close()
+    return None
 
