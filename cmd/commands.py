@@ -96,7 +96,7 @@ class Read:
         if self.file_name is None:
             print("No action will be taken.")
         else:
-            class_.decrypt_file_rsa(self.file_name)
+            class_.decrypt_file(self.file_name)
 
 
 class Delete:
